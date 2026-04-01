@@ -1,0 +1,16 @@
+
+paddleocr
+
+Descargar los modelos de deteccion (multilingual), reconocimiento (multilingual = latin) y clasificacion
+https://github.com/PaddlePaddle/PaddleOCR/blob/release/2.5/doc/doc_en/models_list_en.md
+
+CMD: 
+
+ollama run llama3.2
+
+
+En PowerShell: 
+
+$env:PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK="True"
+
+

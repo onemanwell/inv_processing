@@ -1,0 +1,7 @@
+ollama
+pdfplumber
+numpy
+paddleocr
+pillow
+pymupdf
+openpyxl
