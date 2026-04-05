@@ -4,17 +4,15 @@ from datetime import datetime
 
 COLUMN_TYPES = {
     "file": str,
-    "numero_factura": str,
-    "fecha_emision": str,
-    "proveedor/emisor": str,
-    "cliente/receptor": str,
-    "RUT_emisor": int,
-    "RUT_receptor": int,
+    "Tipo": str,
+    "Numero": str,
+    "Empresa": str,
+    "Fecha_Documento": datetime,
     "Moneda": str,
-    "Concepto/Descripción": str,
+    "Concepto": str,
     "Subtotal": float,
-    "IVA_10%": float,
-    "IVA_22%": float,
+    "IVA_minimo_10": float,
+    "IVA_basico_22": float,
     "Total": float,
 }
 
@@ -37,10 +35,12 @@ def save_to_xlsx(results):
             if col_type in [int, float]:
                 # Convierte a numérico, transforma valores inválidos en NaN
                 df[col] = pd.to_numeric(df[col], errors='coerce')
+            elif col_type == datetime:
+                df[col] = pd.to_datetime(df[col], errors='coerce').dt.date
             else:
                 # Para strings u otros tipos
-                df[col] = df[col].astype(col_type, errors='ignore')
-   
+                df[col] = df[col].astype(col_type, copy=False)
+
 
     # Carpeta Descargas del usuario
     home = os.path.expanduser("~")
@@ -50,6 +50,5 @@ def save_to_xlsx(results):
     filepath = os.path.join(downloads, filename)
 
     df.to_excel(filepath, index=False)
-
 
     os.startfile(filepath)

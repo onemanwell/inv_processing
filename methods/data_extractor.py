@@ -23,16 +23,13 @@ def get_ocr() -> PaddleOCR:
     if _ocr is None:
         _ocr = PaddleOCR(
             # use local detection model (language-agnostic)
-            det_model_dir='ocrmodels/Multilingual_PP-OCRv3_det_infer',
+            text_detection_model_dir='ocrmodels\Multilingual_PP-OCRv3_det_infer',
             # use multilingual recognition model (supports English + Spanish)
-            rec_model_dir='ocrmodels/latin_PP-OCRv3_rec_infer',
-            # use angle classifier for rotated text
-            cls_model_dir='ocrmodels/ch_ppocr_mobile_v2.0_cls_infer',
-            use_angle_cls=True,
-            use_gpu=False,
-            show_log=False
+            text_recognition_model_dir='ocrmodels\latin_PP-OCRv3_rec_infer',
+            use_angle_cls=False    
         )
     return _ocr
+
 def __repr__(self): 
     status = "OK" if self.ok else f"ERROR: {self.error}" 
     return f"Document('{self.name}', method='{self.method}', status='{status}')" 
@@ -65,35 +62,40 @@ def _pdf_has_text(path: Path) -> bool:
         return False
 
 # extract text from digital PDF
-def _extract_with_pdfplumber(path: Path) -> str:
-    parts = []
+def scrape_pdfs(pdf_path: str, y_tolerance: int = 3) -> list:
+    words = []
 
-    with pdfplumber.open(path) as pdf:
-        for i, page in enumerate(pdf.pages):
-            tables = page.extract_tables()
-            table_text = ""
+    with pdfplumber.open(pdf_path) as pdf:
+        for page_index, page in enumerate(pdf.pages):
+            page_words = page.extract_words(
+                use_text_flow=True, keep_blank_chars=False
+            )
+            for w in page_words:
+                w["_page"] = page_index
+                words.append(w)
 
-            if tables:
-                for table in tables:
-                    for row in table:
-                        clean_row = [str(c).strip() for c in row if c and str(c).strip()]
-                        if clean_row:
-                            table_text += " | ".join(clean_row) + "\n"
+    words.sort(key=lambda w: (w["_page"], w["top"]))
 
-            free_text = page.extract_text() or ""
+    line_map: dict = {}
+    for w in words:
+        key = (w["_page"], round(w["top"] / y_tolerance))
+        line_map.setdefault(key, []).append(w)
 
-            content = ""
-            if table_text:
-                content += f"[TABLE]\n{table_text}\n"
-            if free_text:
-                content += f"[TEXT]\n{free_text}\n"
+    result = sorted(line_map.values(), key=lambda ln: (ln[0]["_page"], ln[0]["top"]))
+    for ln in result:
+        ln.sort(key=lambda w: w["x0"])
 
-            if content.strip():
-                parts.append(f"--- Page {i + 1} ---\n{content.strip()}")
+    return result
 
-    return "\n\n".join(parts)
+def lines_to_text(lines: list) -> str:
+    result = []
+    for line in lines:
+        text_line = " ".join(w["text"] for w in line)
+        result.append(text_line)
+    return "\n".join(result)
 
-# convert PDF pages to images using PyMuPDF
+
+#for scanned PDFS, which don't have embedded text, convert each page to an image and run OCR on it
 def _pdf_to_images(path: Path):
     doc = fitz.open(path)
     images = []
@@ -108,27 +110,54 @@ def _pdf_to_images(path: Path):
 # run OCR on images
 def _extract_with_paddleocr(images: list[Image.Image]) -> str:
     ocr = get_ocr()
-    parts = []
+    words = []
 
-    for i, img in enumerate(images):
+    for page_idx, img in enumerate(images):
         result = ocr.ocr(np.array(img), cls=True)
 
         if not result or not result[0]:
             continue
 
-        # sort lines top-to-bottom, then left-to-right
-        lines = sorted(result[0], key=lambda x: (x[0][0][1], x[0][0][0]))
+        for line in result[0]:
+            bbox = line[0]
+            text = line[1][0]
+            confidence = line[1][1]
 
-        page_text = ""
-        for line in lines:
-            text, confidence = line[1][0], line[1][1]
-            if confidence >= 0.6 and text.strip():
-                page_text += text.strip() + "\n"
+            if confidence < 0.6 or not text.strip():
+                continue
 
-        if page_text.strip():
-            parts.append(f"--- Page {i + 1} ---\n{page_text.strip()}")
+            # extraer coordenadas tipo pdfplumber
+            x0 = min(p[0] for p in bbox)
+            x1 = max(p[0] for p in bbox)
+            top = min(p[1] for p in bbox)
 
-    return "\n\n".join(parts)
+            words.append({
+                "text": text.strip(),
+                "x0": x0,
+                "x1": x1,
+                "top": top,
+                "_page": page_idx
+            })
+
+    # reconstrucción de líneas con coordenadas
+    words.sort(key=lambda w: (w["_page"], w["top"]))
+
+    line_map = {}
+    y_tolerance = 5  # más alto que pdfplumber porque OCR es más ruidoso
+
+    for w in words:
+        key = (w["_page"], round(w["top"] / y_tolerance))
+        line_map.setdefault(key, []).append(w)
+
+    lines = sorted(
+        line_map.values(),
+        key=lambda ln: (ln[0]["_page"], ln[0]["top"])
+    )
+
+    for ln in lines:
+        ln.sort(key=lambda w: w["x0"])
+
+    return lines
 
 # clean text before sending to LLM
 def clean_text(text: str) -> str:
@@ -149,8 +178,8 @@ def extract_text(path: Path) -> tuple[str, str]:
 
     if suffix == ".pdf":
         if _pdf_has_text(path):
-            text = _extract_with_pdfplumber(path)
-            return clean_text(text), "pdfplumber"
+            text = scrape_pdfs(path)
+            return text, "pdfplumber"
         else:
             images = _pdf_to_images(path)
             text = _extract_with_paddleocr(images)
@@ -161,7 +190,7 @@ def extract_text(path: Path) -> tuple[str, str]:
         return clean_text(text), "paddleocr"
 
     else:
-        raise ValueError(f"Unsupported extension: {suffix}")
+        raise ValueError(f"Unsupported filetype for selected file: {suffix} ; {path.name}")
 
 # document container
 class Document:
@@ -171,10 +200,10 @@ class Document:
         self.text = text
         self.method = method
         self.error = error
-        self.ok = error is None and len(text.strip()) > 20
+        self.ok = error is None 
 
 def save_text(text, filename):
-    base_dir = os.path.dirname(os.path.abspath(__file__))  # carpeta del script
+    base_dir = os.path.dirname(os.path.abspath(__file__))  # directorio del script
     filepath = os.path.join(base_dir, filename)
 
     with open(filepath, "w", encoding="utf-8") as f:
@@ -200,3 +229,6 @@ def select_and_extract() -> list[Document]:
     logger.info(f"Extraction completed: {sum(d.ok for d in documents)}/{len(documents)} OK")
 
     return documents
+
+
+

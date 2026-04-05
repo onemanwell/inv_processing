@@ -1,6 +1,6 @@
-from doc_extraction import select_and_extract
-from interpreter import multiple_processing
-from data_storage import save_to_xlsx
+from methods.data_extractor import select_and_extract
+from methods.data_processor import hibrid_processor
+from methods.df import save_to_xlsx
 import logging
 import time
 
@@ -13,23 +13,10 @@ if __name__ == "__main__":
     start_time = time.time()
 
     documents = select_and_extract()
-    results = []
-
-    for doc in documents:
-        print(doc.name, doc.method, doc.ok, doc.text)
-        if not doc.ok:
-            continue
-
-        text_to_process = doc.text[:2000]
-        
-        data = multiple_processing(doc.text, doc.path)
-
-        results.append({
-            "file": doc.name,
-            "data": data
-        })
-
-    save_to_xlsx(results)
+    
+    processed_data = hibrid_processor(documents)
+ 
+    save_to_xlsx(processed_data)
 
     elapsed = time.time() - start_time
     logger.info(f"Tiempo total de ejecución: {elapsed:.2f} segundos")
