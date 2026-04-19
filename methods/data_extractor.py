@@ -84,7 +84,7 @@ def scrape_pdfs(pdf_path: str, y_tolerance: int = 3) -> list:
     result = sorted(line_map.values(), key=lambda ln: (ln[0]["_page"], ln[0]["top"]))
     for ln in result:
         ln.sort(key=lambda w: w["x0"])
-
+    
     return result
 
 def lines_to_text(lines: list) -> str:

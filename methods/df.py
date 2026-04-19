@@ -10,7 +10,9 @@ COLUMN_TYPES = {
     "Fecha_Documento": datetime,
     "Moneda": str,
     "Concepto": str,
-    "Subtotal": float,
+    "Subtotal_no_grav": float,
+    "Subtotal_basica": float,
+    "Subtotal_minima": float,
     "IVA_minimo_10": float,
     "IVA_basico_22": float,
     "Total": float,
@@ -21,7 +23,6 @@ def save_to_xlsx(results):
     for r in results:
         row = {"file": r["file"]}
         if r["data"] is not None:
-            # agregar campos esperados aunque falten en r["data"]
             for key in COLUMN_TYPES.keys():
                 if key != "file":
                     row[key] = r["data"].get(key, None)

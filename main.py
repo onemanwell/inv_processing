@@ -13,7 +13,6 @@ if __name__ == "__main__":
     start_time = time.time()
 
     documents = select_and_extract()
-    
     processed_data = hibrid_processor(documents)
  
     save_to_xlsx(processed_data)

@@ -5,6 +5,8 @@ from tkinter import Tk, filedialog, simpledialog
 import sys
 from datetime import datetime
 import unicodedata
+from itertools import combinations, permutations
+
 
 
 sys.path.append("./")
@@ -61,7 +63,7 @@ def get_company_name() -> str:
         raise ValueError("Debe ingresar un nombre de empresa.")
     return nombre.strip()
 
-NOMBRE_SOC = get_company_name()
+
 
 def normalize_text(s: str) -> str:
     s = "".join(
@@ -72,6 +74,8 @@ def normalize_text(s: str) -> str:
     s = re.sub(r"[^\w\s%]", "", s)
     return s
 
+
+NOMBRE_SOC = normalize_text(get_company_name())
 
 def parse_number(value) -> float | None:
     if value is None:
@@ -109,6 +113,32 @@ def find_amount_from_line(line: list) -> str | None:
             return m.group()
 
     return None
+
+def extract_amounts_from_line(line: list) -> list[float]:
+
+    values = []
+
+    # 1. detectar valores individuales
+    for w in line:
+        text = w["text"]
+
+        matches = TOTAL_RE.findall(text)
+        for m in matches:
+            val = parse_number(m)
+            if val is not None:
+                values.append(val)
+
+    # 2. fallback: números partidos en tokens (ej: "126,302" + ".60")
+    for i in range(len(line) - 1):
+        combined = line[i]["text"] + line[i + 1]["text"]
+
+        matches = TOTAL_RE.findall(combined)
+        for m in matches:
+            val = parse_number(m)
+            if val is not None:
+                values.append(val)
+
+    return values
 
 
 def extract_type(lines, max_lines: int = 15) -> str | None:
@@ -225,6 +255,11 @@ def extract_company_name(lines,max_gap: int = 12) -> str | None:
                 name_words = candidates + suffix_words
 
         company_name = " ".join(w["text"] for w in name_words).strip()
+        if not company_name or len(company_name) < 3:
+            return None
+        #eliminar casos basura (solo símbolos)
+        if not any(c.isalpha() for c in company_name):
+            return None
         if company_name and normalize_text(company_name) != audited_norm:
             return company_name
 
@@ -392,12 +427,13 @@ def extract_concept(lines,vertical_tolerance: int = 30) -> dict:
     return {"descripcion_texto": " | ".join(descriptions), "y_reference": y_reference}
 
 
-def extract_importes(lines,y_reference) -> dict:
+"""def extract_importes_v1(lines,y_reference) -> dict:
     total_general = iva_minimo_10 = iva_basico_22 = None
 
     if y_reference is None:
         return {"total_general": None, "iva_minimo_10": None, "iva_basico_22": None}
 
+    #Utilizo y_reference, extraido de extract_concept para partir la búsqueda debajo del concepto de la factura y optimizar tiempos de procesamiento
     for line in lines:
         line      = sorted(line, key=lambda w: w["x0"])
         y         = line[0]["top"]
@@ -440,15 +476,193 @@ def extract_importes(lines,y_reference) -> dict:
             amount = find_amount_from_line(line)
             if amount:
                 iva_basico_22 = amount
-    
-    if iva_minimo_10 == 10: iva_minimo_10 = None
-    if iva_basico_22 == 22: iva_basico_22 = None
 
     return {
         "total_general": parse_number(total_general),
         "iva_minimo_10": parse_number(iva_minimo_10),
         "iva_basico_22": parse_number(iva_basico_22),
+    }"""
+
+def extract_importes_v2(lines, y_reference) -> dict:
+    empty = {
+        "total_general":    None,
+        "subtotal_no_grav": None,
+        "subtotal_minima":  None,
+        "subtotal_basica":  None,
+        "iva_minimo_10":    None,
+        "iva_basico_22":    None,
     }
+
+    if y_reference is None:
+        return empty
+
+    # ── 1. Filtrar líneas por y_reference ────────────────────────────────────
+    indexed_lines = []
+    for line in lines:
+        line_sorted = sorted(line, key=lambda w: w["x0"])
+        if line_sorted[0]["top"] > y_reference:
+            indexed_lines.append(line_sorted)
+
+    # ── 2. Líneas que contienen "total" ───────────────────────────────────────
+    total_line_indices = []
+    for idx, line in enumerate(indexed_lines):
+        line_text = " ".join(normalize_text(w["text"]) for w in line)
+        if "total" in line_text:
+            total_line_indices.append(idx)
+
+    if not total_line_indices:
+        return empty
+
+    # ── 3. Candidatos numéricos en ventana ±2 de cada línea "total" ──────────
+    seen_raw   = set()
+    candidates = []
+
+    for t_idx in total_line_indices:
+        window_start = max(0, t_idx - 2)
+        window_end   = min(len(indexed_lines) - 1, t_idx + 2)
+
+        for line_idx in range(window_start, window_end + 1):
+            for raw in _collect_all_amounts(indexed_lines[line_idx]):
+                if raw not in seen_raw:
+                    parsed = parse_number(raw)
+                    if parsed is not None:
+                        candidates.append(parsed)
+                        seen_raw.add(raw)
+
+    if not candidates:
+        return empty
+
+    # ── 4. Mayor candidato → total general ───────────────────────────────────
+    total_general = max(candidates)
+    remaining     = [c for c in candidates if c != total_general]
+
+    # ── 5. Subconjunto que suma total_general ─────────────────────────────────
+    TOLERANCE     = 0.01
+    matched_subset = None
+
+    for size in range(1, len(remaining) + 1):
+        for subset in combinations(remaining, size):
+            if abs(sum(subset) - total_general) <= TOLERANCE:
+                matched_subset = list(subset)
+                break
+        if matched_subset:
+            break
+
+    if not matched_subset:
+        return {**empty, "total_general": total_general}
+
+    # ── 6. Clasificar subset según paridad ────────────────────────────────────
+    #
+    #   Par   → pares (subtotal, iva): todos los valores tienen IVA asignable
+    #   Impar → un valor es no gravado (sin IVA), el resto son pares (sub, iva)
+    #
+    RATES = {"basica": 0.22, "minima": 0.10}
+
+    subtotal_no_grav = None
+    subtotal_minima  = None
+    subtotal_basica  = None
+    iva_minimo_10    = None
+    iva_basico_22    = None
+
+    def try_pair_match(values: list) -> list[tuple] | None:
+        """
+        Dado un conjunto de valores de tamaño par, intenta emparejar cada
+        elemento con otro tal que  sub * tasa == iva  (22% o 10%).
+        Devuelve lista de (subtotal, iva, tasa_nombre) o None si no cierra.
+        """
+        if len(values) % 2 != 0:
+            return None
+
+        # Intentamos todas las permutaciones de la primera mitad como subtotales
+        half = len(values) // 2
+        for perm in permutations(values, len(values)):
+            subs = list(perm[:half])
+            ivas = list(perm[half:])
+            pairs = []
+            used_ivas = []
+            success = True
+
+            for sub in subs:
+                matched = False
+                for rate_name, rate in RATES.items():
+                    expected_iva = round(sub * rate, 2)
+                    for iva_candidate in ivas:
+                        if iva_candidate not in used_ivas and abs(iva_candidate - expected_iva) <= TOLERANCE:
+                            pairs.append((sub, iva_candidate, rate_name))
+                            used_ivas.append(iva_candidate)
+                            matched = True
+                            break
+                    if matched:
+                        break
+                if not matched:
+                    success = False
+                    break
+
+            if success and len(pairs) == half:
+                return pairs
+
+        return None
+
+    n = len(matched_subset)
+
+    if n % 2 == 0:
+        # ── Caso par: todos los valores tienen IVA ───────────────────────────
+        pairs = try_pair_match(matched_subset)
+
+        if pairs:
+            for sub, iva, rate_name in pairs:
+                if rate_name == "basica":
+                    subtotal_basica = sub
+                    iva_basico_22   = iva
+                elif rate_name == "minima":
+                    subtotal_minima = sub
+                    iva_minimo_10   = iva
+
+    else:
+        # ── Caso impar: un valor es no gravado, el resto son pares ───────────
+        for i, candidate_no_grav in enumerate(matched_subset):
+            rest = [v for j, v in enumerate(matched_subset) if j != i]
+
+            if len(rest) % 2 != 0:
+                continue
+
+            pairs = try_pair_match(rest)
+            if pairs:
+                subtotal_no_grav = candidate_no_grav
+                for sub, iva, rate_name in pairs:
+                    if rate_name == "basica":
+                        subtotal_basica = sub
+                        iva_basico_22   = iva
+                    elif rate_name == "minima":
+                        subtotal_minima = sub
+                        iva_minimo_10   = iva
+                break
+
+    return {
+        "total_general":    total_general,
+        "subtotal_no_grav": subtotal_no_grav,
+        "subtotal_minima":  subtotal_minima,
+        "subtotal_basica":  subtotal_basica,
+        "iva_minimo_10":    iva_minimo_10,
+        "iva_basico_22":    iva_basico_22,
+    }
+
+def _collect_all_amounts(line: list) -> list[str]:
+    """Extrae todos los strings numéricos que matchean TOTAL_RE en una línea."""
+    found = []
+
+    for w in line:
+        for m in TOTAL_RE.finditer(w["text"]):
+            found.append(m.group())
+
+    # Pares adyacentes para números partidos como "126,302" + ".60"
+    for i in range(len(line) - 1):
+        combined = line[i]["text"] + line[i + 1]["text"]
+        for m in TOTAL_RE.finditer(combined):
+            found.append(m.group())
+
+    return found
+
 
 def safe_extract(func, default=None):
     try:
