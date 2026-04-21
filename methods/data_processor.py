@@ -51,7 +51,7 @@ def logic_processor(documents: list[Document]) -> list[dict]:
                 "Total":             total_general,
             }
         })
-    
+ 
     return results
 
 def has_nulls(data: dict) -> bool:
@@ -71,7 +71,7 @@ def inference_processor(results: list[dict]) -> list[dict]:
     for r in results:
         data = r["data"]
         doc_text = lines_to_text(r["text"])
-       
+        print(doc_text)
         if not has_nulls(data):
             final_results.append({
                 "file": r["Path"],

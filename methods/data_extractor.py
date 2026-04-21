@@ -1,12 +1,12 @@
 import sys
 import os
-os.environ["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = "False"
 import logging
 from pathlib import Path
 from tkinter import Tk, filedialog
 import numpy as np
 import pdfplumber
 import fitz
+os.environ["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = "True"
 from paddleocr import PaddleOCR
 from PIL import Image
 
@@ -23,10 +23,11 @@ def get_ocr() -> PaddleOCR:
     if _ocr is None:
         _ocr = PaddleOCR(
             # use local detection model (language-agnostic)
-            text_detection_model_dir='ocrmodels\Multilingual_PP-OCRv3_det_infer',
+            text_detection_model_dir=r'ocrmodels\Multilingual_PP-OCRv3_det_infer',
             # use multilingual recognition model (supports English + Spanish)
-            text_recognition_model_dir='ocrmodels\latin_PP-OCRv3_rec_infer',
-            use_angle_cls=False    
+            text_recognition_model_dir=r'ocrmodels\latin_PP-OCRv3_rec_infer',
+            use_angle_cls=True,
+            cls_model_dir=r'ocrmodels\ch_ppocr_mobile_v2.0_cls_infer'    
         )
     return _ocr
 
@@ -182,12 +183,12 @@ def extract_text(path: Path) -> tuple[str, str]:
             return text, "pdfplumber"
         else:
             images = _pdf_to_images(path)
-            text = _extract_with_paddleocr(images)
-            return clean_text(text), "paddleocr"
+            lines = _extract_with_paddleocr(images)
+            return lines, "paddleocr"
 
     elif suffix in VALID_EXTENSIONS:
-        text = _extract_with_paddleocr([Image.open(path)])
-        return clean_text(text), "paddleocr"
+        lines = _extract_with_paddleocr([Image.open(path)])
+        return lines, "paddleocr"
 
     else:
         raise ValueError(f"Unsupported filetype for selected file: {suffix} ; {path.name}")

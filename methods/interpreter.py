@@ -4,7 +4,7 @@ import re
 import logging
 from exceptions.JSONDecodeError import JSONDecodeError
 from methods.invoice_scrapper import NOMBRE_SOC
-
+import subprocess
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
 logger = logging.getLogger(__name__)
@@ -244,6 +244,8 @@ def llm_processing(text: str, name: str, partial_data: dict) -> dict | None:
         return partial_data
 
     logger.info(f"Enviando texto al LLM ({len(text)} caracteres)")
+
+    subprocess.Popen(["ollama", "serve"])
 
     response = ollama.chat(
         model=MODEL,

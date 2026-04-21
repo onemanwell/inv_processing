@@ -1,0 +1,7 @@
+La utilización del modelo generativo ha demostrado ser eficaz en la extracción de:
+- nombres de emisores/receptores para los casos en el que son una persona física (nombre civil)
+- fechas en formato estadounidense
+
+
+Para utilizar OCR: python 3.10 en venv
+Agregar funcion para reconocer si hay multiples facturas en un solo escaneo, supongo que a traves del nro de factura, y poder extraer la info de todas

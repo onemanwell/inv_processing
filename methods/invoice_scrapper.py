@@ -155,7 +155,7 @@ def extract_nbr(lines) -> str | None:
     for line in lines:
         text_line = " ".join(w["text"] for w in line)
 
-        match = re.search(r"\b[ABC]\s*[-/]?\s*(\d{3,})\b", text_line)
+        match = re.search(r"\b[ABCF]\s*[-/]?\s*(\d{3,})\b", text_line)
         if match:
             digits = match.group(1)
             if len(digits) != 12:
@@ -279,7 +279,12 @@ def extract_currency(lines) -> str | None:
     VALID = {"usd", "uyu", "eur"}
     for line in lines:
         for w in line:
-            if normalize_text(w["text"]) in VALID:
+            text = normalize_text(w["text"])
+            if text == "peso uruguayo": 
+                text = "uyu"
+            if text == "dolar estadounidense": 
+                text = "usd"
+            if text in VALID:
                 return normalize_text(w["text"]).upper()
     return None
 
@@ -492,16 +497,17 @@ def extract_importes_v2(lines, y_reference) -> dict:
         "iva_minimo_10":    None,
         "iva_basico_22":    None,
     }
-
-    if y_reference is None:
-        return empty
-
-    # ── 1. Filtrar líneas por y_reference ────────────────────────────────────
+    #y_reference se utiliza para optimizar el procesamiento y empezar desde la línea del último artículo de la factura
     indexed_lines = []
+
     for line in lines:
         line_sorted = sorted(line, key=lambda w: w["x0"])
-        if line_sorted[0]["top"] > y_reference:
+
+        if y_reference is None:
             indexed_lines.append(line_sorted)
+        else:
+            if line_sorted[0]["top"] > y_reference:
+                indexed_lines.append(line_sorted)
 
     # ── 2. Líneas que contienen "total" ───────────────────────────────────────
     total_line_indices = []
@@ -532,12 +538,13 @@ def extract_importes_v2(lines, y_reference) -> dict:
     if not candidates:
         return empty
 
+    print(candidates)
     # ── 4. Mayor candidato → total general ───────────────────────────────────
     total_general = max(candidates)
     remaining     = [c for c in candidates if c != total_general]
 
     # ── 5. Subconjunto que suma total_general ─────────────────────────────────
-    TOLERANCE     = 0.01
+    TOLERANCE     = 0.5
     matched_subset = None
 
     for size in range(1, len(remaining) + 1):

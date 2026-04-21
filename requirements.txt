@@ -1,11 +1,9 @@
 ollama
 pdfplumber
-numpy
- paddleocr==2.7.0.3 --no-deps
+numpy==1.26.4
 pillow
 pymupdf
 openpyxl
-paddlepaddle
-opencv-python
-shapely 
-pyclipper
+paddleocr==2.7.3
+paddlepaddle==2.6.2
+opencv-python 
