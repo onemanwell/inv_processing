@@ -9,7 +9,8 @@ import fitz
 os.environ["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = "True"
 from paddleocr import PaddleOCR
 from PIL import Image
-
+from methods.invoice_scrapper import extract_nbr
+from pathlib import Path
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
 logger = logging.getLogger(__name__)
@@ -62,6 +63,33 @@ def _pdf_has_text(path: Path) -> bool:
     except Exception:
         return False
 
+def split_file(pages): #method for splitting  files by document number (in case there is multiple documents in a single file)
+    indep_docs = []
+    current_doc = []
+    current_number = None
+
+    for page in pages:
+        lines = page["lines"]
+        page_number = extract_nbr(lines)
+
+        if not current_doc:
+            current_doc.append(page)
+            current_number = page_number
+            continue
+
+        if page_number is None or page_number == current_number:
+            current_doc.append(page)
+        else:
+            indep_docs.append(current_doc)
+            current_doc = [page]
+            current_number = page_number
+
+    if current_doc:
+        indep_docs.append(current_doc)
+
+
+    return indep_docs
+
 # extract text from digital PDF
 def scrape_pdfs(pdf_path: str, y_tolerance: int = 3) -> list:
     words = []
@@ -94,7 +122,6 @@ def lines_to_text(lines: list) -> str:
         text_line = " ".join(w["text"] for w in line)
         result.append(text_line)
     return "\n".join(result)
-
 
 #for scanned PDFS, which don't have embedded text, convert each page to an image and run OCR on it
 def _pdf_to_images(path: Path):
@@ -143,20 +170,34 @@ def _extract_with_paddleocr(images: list[Image.Image]) -> str:
     # reconstrucción de líneas con coordenadas
     words.sort(key=lambda w: (w["_page"], w["top"]))
 
-    line_map = {}
-    y_tolerance = 5  # más alto que pdfplumber porque OCR es más ruidoso
+    lines = []
+    current_line = []
+    current_y = None
+    y_tolerance = 12
 
     for w in words:
-        key = (w["_page"], round(w["top"] / y_tolerance))
-        line_map.setdefault(key, []).append(w)
+        if not current_line:
+            current_line = [w]
+            current_y = w["top"]
+            continue
 
-    lines = sorted(
-        line_map.values(),
-        key=lambda ln: (ln[0]["_page"], ln[0]["top"])
-    )
+        same_page = w["_page"] == current_line[0]["_page"]
 
-    for ln in lines:
-        ln.sort(key=lambda w: w["x0"])
+        if same_page and abs(w["top"] - current_y) <= y_tolerance:
+            current_line.append(w)
+            current_y = (current_y + w["top"]) / 2
+        else:
+            lines.append(sorted(current_line, key=lambda x: x["x0"]))
+            current_line = [w]
+            current_y = w["top"]
+
+    if current_line:
+        normalized_y = min(w["top"] for w in current_line)
+
+        for item in current_line:
+            item["top"] = normalized_y
+
+        lines.append(sorted(current_line, key=lambda x: x["x0"]))
 
     return lines
 
@@ -177,21 +218,104 @@ def clean_text(text: str) -> str:
 def extract_text(path: Path) -> tuple[str, str]:
     suffix = path.suffix.lower()
 
+    if suffix in VALID_EXTENSIONS and suffix != ".pdf":
+        lines = _extract_with_paddleocr([Image.open(path)])
+        return [(lines, "paddleocr")]
+
     if suffix == ".pdf":
+        pages = []
+
         if _pdf_has_text(path):
-            text = scrape_pdfs(path)
-            return text, "pdfplumber"
+            with pdfplumber.open(path) as pdf:
+                for page in pdf.pages:
+                    page_words = page.extract_words(
+                        use_text_flow=True,
+                        keep_blank_chars=False
+                    )
+
+                    words = []
+
+                    for w in page_words:
+                        words.append({
+                            "text": w["text"],
+                            "x0": w["x0"],
+                            "x1": w["x1"],
+                            "top": w["top"],
+                            "_page": 0
+                        })
+
+                    words.sort(key=lambda w: w["top"])
+
+                    line_map = {}
+                    y_tolerance = 3
+
+                    for w in words:
+                        key = round(w["top"] / y_tolerance)
+                        line_map.setdefault(key, []).append(w)
+
+                    lines = sorted(
+                        line_map.values(),
+                        key=lambda ln: ln[0]["top"]
+                    )
+
+                    for ln in lines:
+                        ln.sort(key=lambda w: w["x0"])
+
+                    pages.append({
+                        "lines": lines,
+                        "method": "pdfplumber"
+                    })
+
         else:
             images = _pdf_to_images(path)
-            lines = _extract_with_paddleocr(images)
-            return lines, "paddleocr"
 
-    elif suffix in VALID_EXTENSIONS:
-        lines = _extract_with_paddleocr([Image.open(path)])
-        return lines, "paddleocr"
+            for img in images:
+                lines = _extract_with_paddleocr([img])
 
-    else:
-        raise ValueError(f"Unsupported filetype for selected file: {suffix} ; {path.name}")
+                pages.append({
+                    "lines": lines,
+                    "method": "paddleocr"
+                })
+
+        grouped_docs = split_file(pages)
+
+        result = []
+
+        for idx,doc in enumerate(grouped_docs, start=1):
+            merged_lines = []
+
+            for page in doc:
+                merged_lines.extend(page["lines"])
+
+            method = doc[0]["method"]
+            result.append((merged_lines, method))
+
+            save_lines_debug(merged_lines, f"{path.stem}_doc{idx}.txt")
+        return result
+
+    raise ValueError(f"Unsupported filetype for selected file: {suffix}")
+
+def save_lines_debug(lines, filename="ocr_debug.txt"):
+    with open(filename, "w", encoding="utf-8") as f:
+        for line_idx, line in enumerate(lines, 1):
+            f.write(f"===== LINEA {line_idx} =====\n")
+
+            for w in line:
+                text = w["text"]
+                x0 = round(w["x0"], 2)
+                x1 = round(w["x1"], 2)
+                top = round(w["top"], 2)
+                page = w.get("_page", 0)
+
+                f.write(
+                    f"[page={page}] "
+                    f"[x0={x0}] "
+                    f"[x1={x1}] "
+                    f"[top={top}] "
+                    f"{text}\n"
+                )
+
+            f.write("\n")
 
 # document container
 class Document:
@@ -212,6 +336,7 @@ def save_text(text, filename):
 
 def select_and_extract() -> list[Document]:
     files = select_files()
+
     if not files:
         return []
 
@@ -219,17 +344,62 @@ def select_and_extract() -> list[Document]:
 
     for path in files:
         try:
-            text, method = extract_text(path)
-            doc = Document(path, text, method)
+            extracted_docs = extract_text(path)
+
+            for idx, (text, method) in enumerate(extracted_docs, start=1):
+
+                if len(extracted_docs) == 1:
+                    doc_path = path
+                else:
+                    doc_path = Path(f"{path.stem}_{idx}{path.suffix}")
+
+                doc = Document(doc_path, text, method)
+                documents.append(doc)
+
         except Exception as e:
             logger.error(f"Error processing {path.name}: {e}")
-            doc = Document(path, "", "error", error=str(e))
+            documents.append(
+                Document(path, "", "error", error=str(e))
+            )
 
-        documents.append(doc)
-
-    logger.info(f"Extraction completed: {sum(d.ok for d in documents)}/{len(documents)} OK")
+    logger.info(
+        f"Extraction completed: {sum(d.ok for d in documents)}/{len(documents)} OK"
+    )
 
     return documents
 
 
 
+def save_lines_debug(lines: list, output_file: str = "ocr_debug.txt") -> None:
+    """
+    Guarda todas las líneas detectadas con coordenadas x/y por palabra.
+    Útil para revisar OCR en documentos escaneados.
+    """
+
+    output_path = Path(output_file)
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        current_page = None
+
+        for line_idx, line in enumerate(lines, start=1):
+
+            if not line:
+                continue
+
+            page = line[0].get("_page", 0)
+
+            if page != current_page:
+                current_page = page
+                f.write(f"\n================ PAGE {page + 1} ================\n")
+
+            f.write(f"\n----- LINE {line_idx} -----\n")
+
+            for word in line:
+                text = word.get("text", "")
+                x0 = round(word.get("x0", 0), 2)
+                x1 = round(word.get("x1", 0), 2)
+                y = round(word.get("top", 0), 2)
+
+                f.write(
+                    f"[x0={x0}] [x1={x1}] [y={y}] {text}\n"
+                )

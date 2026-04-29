@@ -142,12 +142,32 @@ def extract_amounts_from_line(line: list) -> list[float]:
 
 
 def extract_type(lines, max_lines: int = 15) -> str | None:
-    keywords = {"factura": "Factura", "boleta": "Boleta", "nota": "Nota de Crédito", "efactura": "Factura", "recibo": "Recibo", "ecobranza": "Recibo", "invoice": "Factura"}
+
     for line in lines[:max_lines]:
-        text_line = " ".join(normalize_text(w["text"]) for w in line).lower()
-        for word in text_line.split():
-            if word in keywords:
-                return keywords[word]
+        text_line = " ".join(
+            normalize_text(w["text"]) for w in line
+        ).lower()
+
+        compact = re.sub(r"[^a-z0-9]", "", text_line)
+
+        if re.search(r"nota", compact) and re.search(r"credito", compact):
+            return "Nota de Crédito"
+
+        if re.search(r"nota", compact) and re.search(r"debito", compact):
+            return "Nota de Débito"
+
+        if re.search(r"factura", compact):
+            return "Factura"
+
+        if re.search(r"boleta", compact):
+            return "Boleta"
+
+        if re.search(r"recibo|ecobranza", compact):
+            return "Recibo"
+
+        if re.search(r"invoice", compact):
+            return "Factura"
+
     return None
 
 
@@ -429,6 +449,11 @@ def extract_concept(lines,vertical_tolerance: int = 30) -> dict:
             else:
                 collecting = False
 
+    descripcion_texto = " | ".join(descriptions).strip()
+
+    if not descripcion_texto:
+        descripcion_texto = None
+
     return {"descripcion_texto": " | ".join(descriptions), "y_reference": y_reference}
 
 
@@ -519,13 +544,14 @@ def extract_importes_v2(lines, y_reference) -> dict:
     if not total_line_indices:
         return empty
 
-    # ── 3. Candidatos numéricos en ventana ±2 de cada línea "total" ──────────
+    # ── 3. Candidatos numéricos en ventana ±3 de cada línea "total" ──────────
     seen_raw   = set()
     candidates = []
 
     for t_idx in total_line_indices:
-        window_start = max(0, t_idx - 2)
-        window_end   = min(len(indexed_lines) - 1, t_idx + 2)
+        window = 3
+        window_start = max(0, t_idx - window)
+        window_end   = min(len(indexed_lines) - 1, t_idx + window)
 
         for line_idx in range(window_start, window_end + 1):
             for raw in _collect_all_amounts(indexed_lines[line_idx]):
@@ -542,7 +568,7 @@ def extract_importes_v2(lines, y_reference) -> dict:
     # ── 4. Mayor candidato → total general ───────────────────────────────────
     total_general = max(candidates)
     remaining     = [c for c in candidates if c != total_general]
-
+    print(remaining)
     # ── 5. Subconjunto que suma total_general ─────────────────────────────────
     TOLERANCE     = 0.5
     matched_subset = None
@@ -655,20 +681,36 @@ def extract_importes_v2(lines, y_reference) -> dict:
     }
 
 def _collect_all_amounts(line: list) -> list[str]:
-    """Extrae todos los strings numéricos que matchean TOTAL_RE en una línea."""
+    """Extrae importes y reconstruye números partidos entre bloques OCR."""
     found = []
 
+    # Números normales en cada bloque individual
     for w in line:
-        for m in TOTAL_RE.finditer(w["text"]):
+        text = w["text"].strip()
+
+        for m in TOTAL_RE.finditer(text):
             found.append(m.group())
 
-    # Pares adyacentes para números partidos como "126,302" + ".60"
+    # Reconstrucción controlada de bloques partidos
     for i in range(len(line) - 1):
-        combined = line[i]["text"] + line[i + 1]["text"]
-        for m in TOTAL_RE.finditer(combined):
-            found.append(m.group())
+        left = line[i]["text"].strip()
+        right = line[i + 1]["text"].strip()
 
-    return found
+        left_ok = re.search(r"\d$", left)
+
+        right_ok = (
+            re.fullmatch(r"[\.,]\d{1,2}", right) or
+            re.fullmatch(r"\d{1,2}", right)
+        )
+
+        if left_ok and right_ok:
+            combined = left + right
+
+            for m in TOTAL_RE.finditer(combined):
+                found.append(m.group())
+
+    # Eliminar duplicados conservando orden
+    return list(dict.fromkeys(found))
 
 
 def safe_extract(func, default=None):

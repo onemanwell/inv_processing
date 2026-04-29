@@ -1,0 +1,242 @@
+R.U.T.210231300018
+Megalabs
+FECHA
+TIPODOC NUMERO
+NotadeCreditodee-Factura
+A202087 08/09/2025
+MEGALABSURUGUAYS.A.
+R.U.T.COMPRADOR
+CnoMaldonado6550
+Tel:25111160/08002400
+214048690018
+Montevideo
+www.megalabsuy.com
+169697 MONEDA/CAMBIO
+UYU
+UNIVERSALSOCIEDADDEPRODUCSANITARIA REF:e-FacturaA588886
+UNIVERSALSOCIEDADDEPRODUCSANITARIA
+MILLAN3588
+Montevideo
+Montevideo
+UY
+FORMADEPAGO:CreditoMesy28diascredito
+Cantidad Producto UM Lote Vto. Unitario
+Descuento Imp.c/desc.
+AMOXIDAL500mgsusp×70ml UN
+200 10,21 0,00 2.041,25
+AMOXIDAL500mg×16comp
+UN 0.00
+300 4,67 1.401,00
+AMOXIDAL750mgx10comp UN
+300 0.00 1.522,82
+5,08
+AMOXIDALPLUSC12X14creCNVO UN
+499 15.91 0.00 7.940,34
+ANAFIL180mgx10caps
+300 Nn 0,00 1.956,66
+6,52
+ANAFILPEDIATRICOsuSpX150ml UN
+200
+14,98 0,00
+2.996,80
+CALMOLgotasx10ml
+5,30
+UN
+100 0,00 530,00
+250 CEUMID500mgx20 crec UN 0.00 9.568,56
+38,27
+250 CEUMID x1ampolla UN 1.777,64
+7,11 0.00
+CHELTINFOLICx30crec
+UN
+300 19,48 0,00 5.843,80
+CIRIAXOTICx5ml UN
+85 6,83 0,00
+580,58
+COMITOINASIMPLEx30grag
+120 UN
+13,33 0,00
+1.599,24
+CONVERTALDx30crec
+UN
+150
+8,90 0.00 1.334,74
+300 CORENTEL10mgx30crec UN 3.755,19
+12,52 0,00
+CORENTEL5mgx30crec UN
+300
+7,99 0,00 2.397,24
+CRISTALTEARS 1%x10ml UN
+100 16,28 0,00
+1.628,01
+300 DIAFORMINA500mgx30crec UN
+0,00 2.350,55
+7,84
+DIAFORMINA 850mgx60crec
+UN
+400 3.920,00
+9,80 0,00
+DIAFORMINAXR500x60crec
+200 UN 35,93 0,00 7.185,53
+DICETEL100mgx20crec
+300 UN
+22,33 0,00
+6.700,43
+DIPARDOLX10crec
+UN
+200
+6,27 0,00 1.254,51
+DIPARPARCHESX5
+150 UN
+24,32 0,00
+3.648,51
+DOLEXPEDIATRICOsolucionX60mINVO UN
+200 0.00
+14,39 2.878,74
+DROSMINA200mg x20caps
+150 UN 0.00
+21,46 3.218,69
+150 DROXIQUINA200mgx30crec UN
+22,70 0.00
+3.405,27
+Res.1232/2014
+Puedeverificarel ComprobanteFiscal Electronicoen:https://www.efactura.dgi.gub.uy
+Codigo de Seguridad:iEcrjh Fechadevencimiento:01/07/2027
+I.V.A.ALDIA
+Pagina 1/3
+CAE:90253154060(200001al230000)
+Poweredbywww.signature.uy
+R.U.T.210231300018
+TIPODOC.
+NUMERO FECHA
+NotadeCreditodee-Factura
+A202087
+08/09/2025
+MEGALABSURUGUAYS.A.
+CnoMaldonado6550
+R.U.T.COMPRADOR
+Tel:25111160/08002400
+214048690018
+Montevideo
+www.megalabsuy.com
+169697
+MONEDA/CAMBIO
+UYU
+UNIVERSALSOCIEDADDEPRODUCSANITARIA
+REF:e-FacturaA588886
+UNIVERSALSOCIEDADDEPRODUCSANITARIA
+MILLAN3588
+Montevideo
+Montevideo
+UY
+FORMADEPAGO:CreditoMesy28diascredito
+Cantidad Producto
+UM Lote Vto.
+Unitario Descuento
+Imp.c/desc.
+Ley
+IMESI PERCEPCION
+Subtotal s/desc.:Su 252.965,68
+I.V.A.
+IRAE1.5%
+IVA20% T.Min.10% Dto.Comercial
+MONTO
+T.Bas.22% :Su 0,00
+251.735,38
+IMPONIBLE 0,00 0.00
+0,00 256.770,05
+1.230,30 Dto.Financiero
+:Su 0,00
+IMPUESTOS 5.034.67
+0.00 25.677,00 252.965,68
+0.00 0.00
+270,67 Total Neto Su
+TOTALPESOS URUGUAYOS:Doscientos ochenta y tresmil novecientos cuarenta y ocho
+Total IVA
+ns: 25.947,67
+Total Otros Imp.:Su
+con00/100
+5.034.67
+Total Percep.
+ADENDA
+:Su 0,00
+Redondeo
+Pedido:PV_00857667
+:Su -0,02
+Comentarios:10% s/A588886 :Su 283.948,00
+Res.1232/2014
+PuedeverificarelComprobanteFiscal Electronicoen:https://www.efactura.dgi.gub.uy
+Codigode Seguridad:iEcrjh
+Fechadevencimiento:01/07/2027
+1.V.A.ALDIA
+CAE:90253154060(200001al230000) Pagina3/3
+Powered bywww.signature.uy
+R.U.T.210231300018
+TIPODOC
+NUMERO FECHA
+Nota de Creditodee-Factura
+A202087 08/09/2025
+MEGALABSURUGUAYS.A.
+CnoMaldonado6550
+R.U.T.COMPRADOR
+Tel:25111160/08002400
+214048690018
+Montevideo
+www.megalabsuy.com
+169697
+MONEDA/CAMBIO
+UYU
+UNIVERSALSOCIEDADDEPRODUCSANITARIA
+REF:e-FacturaA588886
+UNIVERSALSOCIEDADDEPRODUCSANITARIA
+MILLAN3588
+Montevideo
+Montevideo
+UY
+FORMA DEPAGO:CreditoMesy28diascredito
+Cantidad Producto Unitario Descuento Imp.c/desc.
+UM Lote Vto.
+IMESI 252.965.68
+Ley PERCEPCION I.V.A. Subtotal s/desc.:$u
+IRAE1.5% T.Min.10% T.Bas.22%
+IVA20% Dto.Comercial :Su 0,00
+MONTO
+IMPONIBLE 0,00 1.230,30
+251.735.38 0,00 0,00 256.770.05 Dto.Financiero
+:Su 0,00
+5.034,67
+0.00 0,00 Total Neto
+IMPUESTOS 0.00 25.677,00 270,67 :Su 252.965,68
+TOTALPESOS URUGUAYOS:Doscientos ochenta y tresmil novecientos cuarentayocho TotalIVA 25.947,67
+:Su
+Total Otros Imp.: Su
+con00/100
+5.034,67
+Total Percep.
+ADENDA :Su
+0,00
+Redondeo
+:Su
+Pedido:PV_00857667 -0,02
+283.948,00
+:Su
+Comentarios:10%s/A588886
+Res.1232/2014
+PuedeverificarelComprobanteFiscalElectronicoen:https:/www.efactura.dgi.gub.uy
+CodigodeSeguridad:iEcrjh
+Fechadevencimiento:01/07/2027
+1.V.A.ALDIA
+Pagina3/3
+CAE:90253154060(200001al230000)
+Poweredbywww.signature.uy
+
+===== OCR DATA =====
+{'Tipo': None, 'Numero': '202087', 'Empresa': None, 'Fecha_Documento': datetime.datetime(2025, 9, 8, 0, 0), 'Moneda': 'UYU', 'Concepto': '', 'Subtotal_no_grav': None, 'Subtotal_basica': None, 'Subtotal_minima': None, 'IVA_minimo_10': None, 'IVA_basico_22': None, 'Total': 252965.68}
+
+===== LLM RESPONSE =====
+None
+
+===== FINAL DATA =====
+{'Tipo': None, 'Numero': '202087', 'Empresa': None, 'Fecha_Documento': datetime.datetime(2025, 9, 8, 0, 0), 'Moneda': 'UYU', 'Concepto': '', 'Subtotal_no_grav': None, 'Subtotal_basica': None, 'Subtotal_minima': None, 'IVA_minimo_10': None, 'IVA_basico_22': None, 'Total': 252965.68}
+
+RESPUESTA RAW: 'Aquí está el resultado del procesamiento de la factura:\n\n**Información General**\n\n* Fecha de emisión: 08/09/2025\n* Número de factura: A202087\n* Comprador: MEGALABSURUGUAYS.A.\n* Dirección: Cno. Maldonado 6550, Montevideo\n* Teléfono: 25111160 / 08002400\n* RUT del comprador: 214048690018\n\n**Detalles de la factura**\n\n* Total de la factura: $252.965,68\n* IVA (IRAE 1.5%): $25.947,67\n* Impuestos adicionales: $5.034,67\n* Monto total a pagar: $283.948,00\n\n**Productos y cantidades**\n\n| Producto | Cantidad | Unitario | Descuento | Imp.c/desc. |\n| --- | --- | --- | --- | --- |\n| AMOXIDAL 500mg x70ml | 200 | $10,21 | $0,00 | $2.041,25 |\n| AMOXIDAL 500mg x16comp | 0 | $0,00 | $1.401,00 |\n| AMOXIDAL 750mg x10comp | 300 | $0,00 | $1.522,82 |\n| ... | ... | ... | ... | ... |\n\n**Observaciones**\n\n* Comentarios: 10% s/A588886\n* Resolución: 1232/2014\n* Pueda verificar el comprobante fiscal electrónico en: https://www.efactura.dgi.gub.uy\n\n**Firma electrónica**\n\n* Código de seguridad: iEcrjh\n* Fecha de vencimiento: 01/07/2027'

@@ -71,7 +71,7 @@ def inference_processor(results: list[dict]) -> list[dict]:
     for r in results:
         data = r["data"]
         doc_text = lines_to_text(r["text"])
-        print(doc_text)
+        
         if not has_nulls(data):
             final_results.append({
                 "file": r["Path"],
@@ -90,7 +90,8 @@ def inference_processor(results: list[dict]) -> list[dict]:
             for k, v in llm_result.items():
                 if final_data.get(k) is None and v is not None:
                     final_data[k] = v
-                
+        
+
         final_results.append({
             "file": r["Path"],
             "data": final_data
